@@ -37,18 +37,28 @@ var assertFileExists = function(infile) {
     return instr;
 };
 
-var assertUrlExists = function(infile) {
+var assertUrlExists = function(infile, checksfile) {
   rest.get(infile).on('complete', function(result) {
     if (result instanceof Error) {
       console.log('Error: ' + result.message);
       process.exit(1);
     } else {
-        return result;
-      var checkJson = checkHtmlFile(program.url, program.checks);
+      var checkJson = checkHtmlFromUrl(result, checksfile);
       var outJson = JSON.stringify(checkJson, null, 4);
       console.log(outJson);
     }
   });
+};
+
+var checkHtmlFromUrl = function(htmlfile, checksfile) {
+    $ = cheerio.load(htmlfile);
+    var checks = loadChecks(checksfile).sort();
+    var out = {};
+    for(var ii in checks) {
+        var present = $(checks[ii]).length > 0;
+        out[checks[ii]] = present;
+    }
+    return out;
 };
 
 var cheerioHtmlFile = function(htmlfile) {
@@ -82,14 +92,9 @@ if(require.main == module) {
         .option('-u, --url <html_file>', 'URL to index.html')
         .option('-f, --file <html_file>', 'Path to index.html', clone(assertFileExists), HTMLFILE_DEFAULT)
         .parse(process.argv);
-//    program
-//        .option('-c, --checks <check_file>', 'Path to checks.json', clone(assertFileExists), CHECKSFILE_DEFAULT)
-//        .option('-u, --url <html_file>', 'URL to index.html')
-//        .option('-f, --file <html_file>', 'Path to index.html')
-//        .parse(process.argv);
-    if (program.url)
+    if (program.url != undefined)
     {
-      var checkURL = assertAndCheckUrlFile(program.url, program.checks);
+      var checkURL = assertUrlExists(program.url, program.checks);
     }
     else if (program.file)
     {
